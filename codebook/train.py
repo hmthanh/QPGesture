@@ -1,26 +1,24 @@
-import pdb
-
+import itertools
 import logging
-logging.getLogger().setLevel(logging.INFO)
-
-from torch.utils.data import DataLoader
-from data_loader.lmdb_data_loader import TrinityDataset
+import os
 import time
 import torch
 import torch.nn as nn
 import yaml
-from pprint import pprint
-from easydict import EasyDict
-from configs.parse_args import parse_args
-from models.vqvae import VQVAE
-# from models.simpleVqvae import simpleVQVAE as VQVAE
-import os
 from torch import optim
-import itertools
-from datetime import datetime
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from configs.parse_args import parse_args
+from datetime import datetime
+from easydict import EasyDict
 from pathlib import Path
+from pprint import pprint
+from data_loader.lmdb_data_loader import TrinityDataset
+from models.vqvae import VQVAE
 
+# from models.simpleVqvae import simpleVQVAE as VQVAE
+
+logging.getLogger().setLevel(logging.INFO)
 
 args = parse_args()
 mydevice = torch.device('cuda:' + args.gpu)
@@ -61,10 +59,10 @@ def main(args):
                               shuffle=True, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
 
     val_dataset = TrinityDataset(args.val_data_path,
-                                       n_poses=args.n_poses,
-                                       subdivision_stride=args.subdivision_stride,
-                                       pose_resampling_fps=args.motion_resampling_framerate,
-                                       data_mean=args.data_mean, data_std=args.data_std, file='g', select='all_speaker')
+                                 n_poses=args.n_poses,
+                                 subdivision_stride=args.subdivision_stride,
+                                 pose_resampling_fps=args.motion_resampling_framerate,
+                                 data_mean=args.data_mean, data_std=args.data_std, file='g', select='all_speaker')
     test_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size,
                              shuffle=False, drop_last=True, num_workers=args.loader_workers, pin_memory=True)
 
@@ -74,7 +72,6 @@ def main(args):
     # model = VQVAE(args.VQVAE, 15 * 3)  # n_joints * n_chanels
     model = nn.DataParallel(model, device_ids=[eval(i) for i in config.no_cuda])
     model = model.to(mydevice)
-
 
     best_val_loss = (1e+2, 0)  # value, epoch
 
@@ -89,7 +86,6 @@ def main(args):
 
     tb_path = args.name + '_' + str(datetime.now().strftime('%Y%m%d_%H%M%S'))
     tb_writer = SummaryWriter(log_dir=str(Path(args.model_save_path).parent / 'tensorboard_runs' / tb_path))
-
 
     for epoch in range(1, args.epochs + 1):
         logging.info(f'Epoch: {epoch}')
@@ -121,7 +117,7 @@ def main(args):
         start = datetime.now()
         for batch_i, batch in enumerate(train_loader, 0):
             target_vec, _, _ = batch
-            pose_seq = target_vec.to(mydevice)      # (b, 240, 15*3)
+            pose_seq = target_vec.to(mydevice)  # (b, 240, 15*3)
             optimizer.zero_grad()
             _, loss, metrics = model(pose_seq)
             # write to tensorboard
@@ -149,7 +145,6 @@ def main(args):
 
 
 if __name__ == '__main__':
-
     with open(args.config) as f:
         config = yaml.safe_load(f)
 
