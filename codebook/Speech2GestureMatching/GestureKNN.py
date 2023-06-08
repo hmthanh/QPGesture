@@ -16,26 +16,25 @@ from constant import UPPERBODY_PARENT, NUM_AUDIO_FEAT, NUM_BODY_FEAT, \
 import Levenshtein
 import torch
 
-seed_value= 123456
-os.environ['PYTHONHASHSEED']=str(seed_value)
+seed_value = 123456
+os.environ['PYTHONHASHSEED'] = str(seed_value)
 random.seed(seed_value)
 np.random.seed(seed_value)
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('-d','--train_database', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-c','--train_codebook', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-w','--train_wavlm', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-wvq','--train_wavvq', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-s','--codebook_signature', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-e','--test_data', help="Path to test data.", type=str, default="/path/to/test_data.npz")
-parser.add_argument('-tw','--test_wavlm', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-twvq','--test_wavvq', help="Path to training database.", type=str, default="/path/to/training_db_data.npz")
-parser.add_argument('-om','--out_knn_filename', help="Output filename of the k-NN searched motion.", type=str, default="/path/to/knn_pred.npz")
-parser.add_argument('-ov','--out_video_path', help="Output path of the video.", type=str, default="/path/to/video/")
-parser.add_argument('-k','--desired_k', help="The desired k-value for the k-NN (starts from 0).", type=int, default=0)
-parser.add_argument('-f','--fake', type=bool, default=False)
-parser.add_argument('-of','--out_fake_knn_filename', help="Output filename of the k-NN searched motion.", type=str, default="/path/to/knn_pred.npz")
+parser.add_argument('-d', '--train_database', help="Path to training database.", type=str, default="../../data/BEAT/speaker_10_state_0/speaker_10_state_0_train_240_txt.npz")
+parser.add_argument('-c', '--train_codebook', help="Path to training database.", type=str, default="../../data/BEAT/speaker_10_state_0/speaker_10_state_0_train_240_code.npz")
+parser.add_argument('-w', '--train_wavlm', help="Path to training database.", type=str, default="../../data/BEAT/speaker_10_state_0/speaker_10_state_0_train_240_WavLM.npz")
+parser.add_argument('-wvq', '--train_wavvq', help="Path to training database.", type=str, default="../../data/BEAT/speaker_10_state_0/speaker_10_state_0_train_240_WavVQ.npz")
+parser.add_argument('-s', '--codebook_signature', help="Path to training database.", type=str, default="../../data/BEAT/BEAT_output_60fps_rotation/code.npz")
+parser.add_argument('-e', '--test_data', help="Path to test data.", type=str, default="../../data/BEAT/speaker_10_state_0/speaker_10_state_0_test_240_txt.npz")
+parser.add_argument('-tw', '--test_wavlm', help="Path to training database.", type=str, default="../../data/BEAT/speaker_10_state_0/speaker_10_state_0_test_240_WavLM.npz")
+parser.add_argument('-twvq', '--test_wavvq', help="Path to training database.", type=str, default="../../data/Example1/ZeroEGGS_cut/wavvq_240.npz")
+parser.add_argument('-om', '--out_knn_filename', help="Output filename of the k-NN searched motion.", type=str, default="./output/result.npz")
+parser.add_argument('-ov', '--out_video_path', help="Output path of the video.", type=str, default="./output/output_video_folder/")
+parser.add_argument('-k', '--desired_k', help="The desired k-value for the k-NN (starts from 0).", type=int, default=0)
+parser.add_argument('-f', '--fake', type=bool, default=False)
+parser.add_argument('-of', '--out_fake_knn_filename', help="Output filename of the k-NN searched motion.", type=str, default="/path/to/knn_pred.npz")
 parser.add_argument('--max_frames', type=int, default=0)
 
 args = parser.parse_args()
@@ -52,14 +51,15 @@ def wavvq_distances(ls1, ls2, mode='sum'):
         ls1_group1_str, ls1_group2_str = ls2str(ls1)
         ls2_group1_str, ls2_group2_str = ls2str(ls2)
 
-        return Levenshtein.distance(ls1_group1_str, ls2_group1_str) + Levenshtein.distance(ls1_group2_str, ls2_group2_str)
+        return Levenshtein.distance(ls1_group1_str, ls2_group1_str) + Levenshtein.distance(ls1_group2_str,
+                                                                                           ls2_group2_str)
 
     elif mode == 'combine':
         def ls2str(ls):
-                ls = ls.reshape(-1, 2).transpose()      # (NUM_AUDIO_FEAT_FRAMES * 2, groups=2)
-                ls = ls[0] * 320 + ls[1]
-                str = ''.join([chr(int(i)) for i in ls])
-                return str
+            ls = ls.reshape(-1, 2).transpose()  # (NUM_AUDIO_FEAT_FRAMES * 2, groups=2)
+            ls = ls[0] * 320 + ls[1]
+            str = ''.join([chr(int(i)) for i in ls])
+            return str
 
         ls1_str = ls2str(ls1)
         ls2_str = ls2str(ls2)
@@ -70,7 +70,7 @@ def wavvq_distances(ls1, ls2, mode='sum'):
 class GestureKNN(object):
     def __init__(self, feat_train, motn_train, control_mask, n_aud_feat=112, n_body_feat=96, n_joints=165, step_sz=8):
         super(GestureKNN, self).__init__()
-        
+
         # feat_train shape    : (num_seq, num_frames, (n_aud_feat + n_body_feat))
         # control_mask shape  : (num_seq, num_frames)
         # motn_train shape    : (num_seq, num_frames, n_joints)
@@ -82,11 +82,10 @@ class GestureKNN(object):
 
         self.feat_train = feat_train
         self.motn_train = motn_train
-        
+
         self.control_mask = control_mask
         self.n_db_seq = feat_train.shape[0]
         self.n_db_frm = feat_train.shape[1]
-
 
     def init_frame(self):
         init_seq = np.random.randint(0, self.n_db_seq)
@@ -98,31 +97,30 @@ class GestureKNN(object):
 
         return init_seq, init_frm
 
-
     def search_motion(self, feat_test, desired_k):
         # feat_test shape    : (self.n_aud_feat, num_frames)), (112, 64)
 
-        n_frames = feat_test.shape[-1]      # 64
-        feat_test = np.concatenate((feat_test[:, 0:1], feat_test), axis=1)      # (112, 1+64)
-        pose_feat = np.zeros((self.n_body_feat, feat_test.shape[1]))        # (96， 1+64)
-        feat_test = np.concatenate((feat_test, pose_feat), axis=0)      # (96+112, 1+64)
+        n_frames = feat_test.shape[-1]  # 64
+        feat_test = np.concatenate((feat_test[:, 0:1], feat_test), axis=1)  # (112, 1+64)
+        pose_feat = np.zeros((self.n_body_feat, feat_test.shape[1]))  # (96， 1+64)
+        feat_test = np.concatenate((feat_test, pose_feat), axis=0)  # (96+112, 1+64)
 
         # initialize pose feature
-        init_seq, init_frm = self.init_frame()      # 21, 147
-        feat_test[self.n_aud_feat:, 0] = self.feat_train[init_seq, init_frm, self.n_aud_feat:]      # (96, )
-        pred_motion = np.zeros((self.n_joints, n_frames + 1))       # (165, 1+64)
+        init_seq, init_frm = self.init_frame()  # 21, 147
+        feat_test[self.n_aud_feat:, 0] = self.feat_train[init_seq, init_frm, self.n_aud_feat:]  # (96, )
+        pred_motion = np.zeros((self.n_joints, n_frames + 1))  # (165, 1+64)
 
         # start from j = 1 (j = 0 is just a duplicate of j = 1 so that we can initialize pose feature) 
         j = 1
         while j < n_frames:
-            pos_dist_cands, pose_cands, feat_cands = self.search_pose_cands(feat_test[self.n_aud_feat:, j-1])
+            pos_dist_cands, pose_cands, feat_cands = self.search_pose_cands(feat_test[self.n_aud_feat:, j - 1])
             # search_pose_cands( (96,) ) -> (num_seq,) (num_seq, 165, 8) (num_seq, 208, 8)
-                
-            n_retained = pos_dist_cands.shape[0]        # (num_seq, )
+
+            n_retained = pos_dist_cands.shape[0]  # (num_seq, )
 
             # compute distance between audio pose feature and the pre-selected feature candidates
-            audio_test_feat = feat_test[:self.n_aud_feat, j]        # (112, )
-            
+            audio_test_feat = feat_test[:self.n_aud_feat, j]  # (112, )
+
             aud_dist_cands = []
             for k in range(n_retained):
                 # audio_sim_score = spatial.distance.cosine(audio_test_feat, feat_cands[k, :self.n_aud_feat, 0])
@@ -134,36 +132,35 @@ class GestureKNN(object):
             # len(aud_dist_cands) = num_seq
             pos_score = np.array(pos_dist_cands).argsort().argsort()
             aud_score = np.array(aud_dist_cands).argsort().argsort()
-            
-            combined_score = pos_score + aud_score
-            combined_sorted_idx = np.argsort(combined_score).tolist()       # len=num_seq
 
-            feat_cands = feat_cands[combined_sorted_idx]        # (num_seq, 208, 8)
-            pose_cands = pose_cands[combined_sorted_idx]        # (num_seq, 165, 8)
-            
-            feat_test[self.n_aud_feat:, j:(j+self.step_sz)] = feat_cands[desired_k, self.n_aud_feat:, :self.step_sz]        # (96, 8)
-            pred_motion[:, j:(j+self.step_sz)] = pose_cands[desired_k, :, :self.step_sz]        # (165, 8)
-            
+            combined_score = pos_score + aud_score
+            combined_sorted_idx = np.argsort(combined_score).tolist()  # len=num_seq
+
+            feat_cands = feat_cands[combined_sorted_idx]  # (num_seq, 208, 8)
+            pose_cands = pose_cands[combined_sorted_idx]  # (num_seq, 165, 8)
+
+            feat_test[self.n_aud_feat:, j:(j + self.step_sz)] = feat_cands[desired_k, self.n_aud_feat:, :self.step_sz]  # (96, 8)
+            pred_motion[:, j:(j + self.step_sz)] = pose_cands[desired_k, :, :self.step_sz]  # (165, 8)
+
             j += self.step_sz
-        
+
         # pred_motion shape    : (self.n_joints, num_frames))
         return pred_motion[:, 1:]
-        
-        
+
     def search_pose_cands(self, body_test_feat):
         pos_dist_cands = []
         pose_cands = []
         feat_cands = []
 
-        for k in range(self.feat_train.shape[0]):       # num_seq
+        for k in range(self.feat_train.shape[0]):  # num_seq
             if self.control_mask[k].sum() == 0:
                 continue
 
             body_dist_list = []
-            body_train_feat = self.feat_train[k, :, self.n_aud_feat:]       # (num_seq, 64, 112+96) -> (64, 96)
+            body_train_feat = self.feat_train[k, :, self.n_aud_feat:]  # (num_seq, 64, 112+96) -> (64, 96)
 
-            for l in range(body_train_feat.shape[0]):       # num_frames
-                body_dist = np.linalg.norm(body_test_feat - body_train_feat[l])     # for every frame
+            for l in range(body_train_feat.shape[0]):  # num_frames
+                body_dist = np.linalg.norm(body_test_feat - body_train_feat[l])  # for every frame
                 body_dist_list.append(body_dist)
 
             sorted_idx_list = np.argsort(body_dist_list)
@@ -171,20 +168,20 @@ class GestureKNN(object):
             pose_cand_ctr = 0
             pose_cand_found = False
 
-            while pose_cand_ctr < len(sorted_idx_list) - 1:     # for every frame
-                f = sorted_idx_list[pose_cand_ctr]      # index
-                d = body_dist_list[f]       # distance
+            while pose_cand_ctr < len(sorted_idx_list) - 1:  # for every frame
+                f = sorted_idx_list[pose_cand_ctr]  # index
+                d = body_dist_list[f]  # distance
 
                 pose_cand_ctr += 1
-                
+
                 # skip the same sequence
                 if d == 0.:
                     continue
-                
+
                 # skip frames with padded features
-                if f > self.n_db_frm - self.step_sz:       # num_frames-8
+                if f > self.n_db_frm - self.step_sz:  # num_frames-8
                     continue
-                
+
                 # check if control condition is satisfied, self.control_mask: default ones like (num_seq, num_frames)
                 if (self.control_mask[k, f] + self.control_mask[k, f + self.step_sz - 1]) != 2:
                     continue
@@ -194,22 +191,21 @@ class GestureKNN(object):
 
             if pose_cand_found == False:
                 continue
-            
+
             # feat_cand shape: (num_feat_dim, step_sz)
             # pose_cand shape: (num_feat_dim, step_sz)
-            feat_cand = self.feat_train[k, f:(f+self.step_sz), :].transpose()       # (8, 112+96).transpose()
-            pose_cand = self.motn_train[k, f:(f+self.step_sz), :].transpose()       # (8, 165).transpose()
+            feat_cand = self.feat_train[k, f:(f + self.step_sz), :].transpose()  # (8, 112+96).transpose()
+            pose_cand = self.motn_train[k, f:(f + self.step_sz), :].transpose()  # (8, 165).transpose()
 
             pos_dist_cands.append(d)
             pose_cands.append(pose_cand)
             feat_cands.append(feat_cand)
-        
+
         pos_dist_cands = np.array(pos_dist_cands)
         pose_cands = np.array(pose_cands)
         feat_cands = np.array(feat_cands)
-        
-        return pos_dist_cands, pose_cands, feat_cands
 
+        return pos_dist_cands, pose_cands, feat_cands
 
     def search_fake_motion(self, feat_test, desired_k):
         # feat_test shape    : (self.n_aud_feat, num_frames)), (112, 64)
@@ -224,7 +220,7 @@ class GestureKNN(object):
         # start from j = 1 (j = 0 is just a duplicate of j = 1 so that we can initialize pose feature)
         j = 0
         while j < n_frames:
-            pos_dist_cands, pose_cands = self.search_fake_pose_cands(feat_test[:self.n_aud_feat, j])     # 20221010
+            pos_dist_cands, pose_cands = self.search_fake_pose_cands(feat_test[:self.n_aud_feat, j])  # 20221010
 
             pos_score = np.array(pos_dist_cands).argsort().argsort()
 
@@ -238,7 +234,6 @@ class GestureKNN(object):
 
         # pred_motion shape    : (self.n_joints, num_frames))
         return pred_motion
-
 
     def search_fake_pose_cands(self, body_test_feat):
         pos_dist_cands = []
@@ -297,7 +292,7 @@ class GestureKNN(object):
 
 
 def predict_gesture_from_audio(feat_train, pose_train, feat_test, control_mask, data_stats, \
-                    k=0, n_aud_feat=112, n_body_feat=96, n_joints=165, step_sz=8, frames=0):
+                               k=0, n_aud_feat=112, n_body_feat=96, n_joints=165, step_sz=8, frames=0):
     # feat_train shape: (num_seq, num_feat=(NUM_AUDIO_FEAT+NUM_BODY_FEAT), num_frames)
     # pose_train shape: (num_seq, num_feat=NUM_JOINTS, num_frames)
     # feat_test shape: (num_seq, num_feat=NUM_AUDIO_FEAT, num_frames)
@@ -310,25 +305,26 @@ def predict_gesture_from_audio(feat_train, pose_train, feat_test, control_mask, 
     aud_std_test = feat_std[:, :n_aud_feat]
 
     norm_feat_test = normalize_data(feat_test, aud_mean_test, aud_std_test)
-    norm_feat_train = normalize_data(feat_train, feat_mean, feat_std)    
+    norm_feat_train = normalize_data(feat_train, feat_mean, feat_std)
     norm_feat_train = norm_feat_train.transpose((0, 2, 1))
     pose_train = pose_train.transpose((0, 2, 1))
 
     n_test_seq = frames if frames != 0 else feat_test.shape[0]
     print('init knn...')
-    gesture_knn = GestureKNN(feat_train=norm_feat_train, 
-                            motn_train=pose_train, 
-                            control_mask=control_mask, 
-                            n_aud_feat=n_aud_feat, 
-                            n_body_feat=n_body_feat, 
-                            n_joints=n_joints,
-                            step_sz=step_sz)
+    gesture_knn = GestureKNN(feat_train=norm_feat_train,
+                             motn_train=pose_train,
+                             control_mask=control_mask,
+                             n_aud_feat=n_aud_feat,
+                             n_body_feat=n_body_feat,
+                             n_joints=n_joints,
+                             step_sz=step_sz)
 
     motion_output = []
 
     print('begin search...')
-    desired_k = np.random.choice(15, n_test_seq, p=[0.5, 0.5/14, 0.5/14, 0.5/14, 0.5/14, 0.5/14, 0.5/14, 0.5/14, 0.5/14,
-                                                    0.5/14, 0.5/14, 0.5/14, 0.5/14, 0.5/14, 0.5/14])
+    desired_k = np.random.choice(15, n_test_seq,
+                                 p=[0.5, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14,
+                                    0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14, 0.5 / 14])
     for i in tqdm(range(0, n_test_seq)):
         # pred_motion shape    : (NUM_JOINTS, num_frames))
         if args.fake:
@@ -359,10 +355,10 @@ def main():
             train_motion.transpose((0, 2, 1)))
 
     data_stats = {
-        'feat_mean' : feat_mean,
-        'feat_std' : feat_std,
-        'motion_mean' : motion_mean,
-        'motion_std' : motion_std,
+        'feat_mean': feat_mean,
+        'feat_std': feat_std,
+        'motion_mean': motion_mean,
+        'motion_std': motion_std,
     }
 
     # The test_data.npz file should contain the following variables:
@@ -398,20 +394,20 @@ def main():
     else:
         # pred_seqs shape: (num_seq, num_feats=NUM_JOINTS, num_frames)
         pred_seqs = predict_gesture_from_audio(
-                        feat_train=train_feats,
-                        pose_train=train_motion,
-                        feat_test=feat_test,
-                        control_mask=control_mask,
-                        data_stats=data_stats,
-                        k=args.desired_k,
-                        n_aud_feat=NUM_AUDIO_FEAT,
-                        n_body_feat=NUM_BODY_FEAT,
-                        n_joints=NUM_JOINTS,
-                        step_sz=STEP_SZ)      # for speaker 10,  for 0, 1 condition, 185 seqs takes 1h 58min, 15 seqs takes 9 min 52 s
+            feat_train=train_feats,
+            pose_train=train_motion,
+            feat_test=feat_test,
+            control_mask=control_mask,
+            data_stats=data_stats,
+            k=args.desired_k,
+            n_aud_feat=NUM_AUDIO_FEAT,
+            n_body_feat=NUM_BODY_FEAT,
+            n_joints=NUM_JOINTS,
+            step_sz=STEP_SZ)  # for speaker 10,  for 0, 1 condition, 185 seqs takes 1h 58min, 15 seqs takes 9 min 52 s
 
         # save output motion as input to the ResyncGestureKNN module later
         print(pred_seqs.shape)
-        np.savez_compressed(args.out_knn_filename, knn_pred=pred_seqs)      # (2, 165, 240)
+        np.savez_compressed(args.out_knn_filename, knn_pred=pred_seqs)  # (2, 165, 240)
 
         # pred_seqs = np.load(args.out_knn_filename)['knn_pred']
         # if not os.path.exists(args.out_video_path):
@@ -460,17 +456,17 @@ class CodeKNN(object):
         self.use_phase = use_phase
 
     def init_code_phase(self):
-            init_i = np.random.randint(0, self.n_db_seq)
-            init_j = np.random.randint(0, self.n_db_frm - int(num_frames/num_frames_code))
-            init_code = self.code_train[init_i, init_j//num_frames_code]
-            if not self.use_phase:
-                return init_code
-            else:
-                init_phase = self.phase_train[init_i, init_j:init_j + int(num_frames/num_frames_code)]
-                phase = torch.tensor([j.detach().cpu().numpy() for j in init_phase[:, 0]]).squeeze().squeeze().numpy()  # 32, 8
-                amps = torch.tensor([j.detach().cpu().numpy() for j in init_phase[:, 2]]).squeeze().squeeze().numpy()  # 32, 8
-                phase_amp = np.concatenate((phase, amps), axis=1)
-                return init_code, phase_amp
+        init_i = np.random.randint(0, self.n_db_seq)
+        init_j = np.random.randint(0, self.n_db_frm - int(num_frames / num_frames_code))
+        init_code = self.code_train[init_i, init_j // num_frames_code]
+        if not self.use_phase:
+            return init_code
+        else:
+            init_phase = self.phase_train[init_i, init_j:init_j + int(num_frames / num_frames_code)]
+            phase = torch.tensor([j.detach().cpu().numpy() for j in init_phase[:, 0]]).squeeze().squeeze().numpy()  # 32, 8
+            amps = torch.tensor([j.detach().cpu().numpy() for j in init_phase[:, 2]]).squeeze().squeeze().numpy()  # 32, 8
+            phase_amp = np.concatenate((phase, amps), axis=1)
+            return init_code, phase_amp
 
     def code_to_signature(self):
         x = np.load(args.codebook_signature)['signature']
@@ -499,7 +495,8 @@ class CodeKNN(object):
         self.freq_dist_cands = list(self.c2f.values())
 
     def search_code_knn(self, clip_test, desired_k, use_feature=False, use_wavlm=False, use_freq=False, seed_code=None,
-                        use_wavvq=False, use_phase=False, seed_phase=None, use_txt=False, clip_context=None, use_aud=False):
+                        use_wavvq=False, use_phase=False, seed_phase=None, use_txt=False, clip_context=None,
+                        use_aud=False):
         # mfcc_test shape : (num_frames=3600, NUM_MFCC_FEAT=13)
         pose_cands = []
         result = []
@@ -526,11 +523,11 @@ class CodeKNN(object):
 
         i = 0
         while i < len(clip_test):
-        # for i in range(0, len(clip_test), STEP_SZ * self.step_sz):
+            # for i in range(0, len(clip_test), STEP_SZ * self.step_sz):
             print(str(i) + '\r', end='')
             pos_dist_cands = []
             for code in self.c2s.keys():
-                if code == result[-1]:      # avoid still in the same code, optical
+                if code == result[-1]:  # avoid still in the same code, optical
                     pos_dist_cands.append(1e10000)
                     continue
                 pos_dist_cands.append(np.linalg.norm(self.c2s[result[-1]] - self.c2s[code]))
@@ -542,11 +539,11 @@ class CodeKNN(object):
             use_freq = True
             if use_freq:  # control signal
                 freq_score = np.array(self.freq_dist_cands).argsort().argsort()
-                pos_score = pos_score + freq_score * 0.05       # 0.1
+                pos_score = pos_score + freq_score * 0.05  # 0.1
 
             if use_txt:
                 if use_wavlm:
-                    clip_context_ = clip_context[int(i/self.wavlm_train.shape[1]*30)]
+                    clip_context_ = clip_context[int(i / self.wavlm_train.shape[1] * 30)]
                 elif use_wavvq:
                     clip_context_ = clip_context[int(i / 398 * 30)]
                 txt_dist_cands, txt_index_cands, aux_ = self.search_text_cands(clip_context_)
@@ -595,10 +592,10 @@ class CodeKNN(object):
                 tmp_phase_amp = []
                 for index in combined_sorted_idx[:2]:
                     candidates_index = aux[index]
-                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1]/398*240):int(candidates_index[1]/398*240) + 32]      # (32, 4, (1, 8, 1))
-                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()        # 32, 8
+                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1] / 398 * 240):int(candidates_index[1] / 398 * 240) + 32]  # (32, 4, (1, 8, 1))
+                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()  # 32, 8
                     amp = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 2]]).squeeze().squeeze().numpy()
-                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)        # 32, 16
+                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)  # 32, 16
                     tmp_distance.append(paired_distances([np.concatenate((result_phase[-1][-5:], phase_amp[:3]), axis=0).reshape(-1)], [np.concatenate((result_phase[-1][-3:], phase_amp[:5]), axis=0).reshape(-1)], metric='cosine')[0])
                     tmp_phase_amp.append(np.concatenate((phase[-8:], amp[-8:]), axis=1))
                 final_index = tmp_distance.index(min(tmp_distance))
@@ -612,10 +609,10 @@ class CodeKNN(object):
                 tmp_phase_amp = []
                 for index in combined_sorted_idx_[:2]:
                     candidates_index = aux_[index]
-                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1]/398*240):int(candidates_index[1]/398*240) + 32]      # (32, 4, (1, 8, 1))
-                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()        # 32, 8
+                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1] / 398 * 240):int(candidates_index[1] / 398 * 240) + 32]  # (32, 4, (1, 8, 1))
+                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()  # 32, 8
                     amp = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 2]]).squeeze().squeeze().numpy()
-                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)        # 32, 16
+                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)  # 32, 16
                     tmp_distance.append(paired_distances([np.concatenate((result_phase[-1][-5:], phase_amp[:3]), axis=0).reshape(-1)], [np.concatenate((result_phase[-1][-3:], phase_amp[:5]), axis=0).reshape(-1)], metric='cosine')[0])
                     tmp_phase_amp.append(np.concatenate((phase[-8:], amp[-8:]), axis=1))
                 final_index = tmp_distance.index(min(tmp_distance))
@@ -629,18 +626,18 @@ class CodeKNN(object):
                 tmp_phase_amp = []
                 for index in combined_sorted_idx[:1]:
                     candidates_index = aux[index]
-                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1]/398*240):int(candidates_index[1]/398*240) + 32]      # (32, 4, (1, 8, 1))
-                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()        # 32, 8
+                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1] / 398 * 240):int(candidates_index[1] / 398 * 240) + 32]  # (32, 4, (1, 8, 1))
+                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()  # 32, 8
                     amp = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 2]]).squeeze().squeeze().numpy()
-                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)        # 32, 16
+                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)  # 32, 16
                     tmp_distance.append(paired_distances([np.concatenate((result_phase[-1][-5:], phase_amp[:3]), axis=0).reshape(-1)], [np.concatenate((result_phase[-1][-3:], phase_amp[:5]), axis=0).reshape(-1)], metric='cosine')[0])
                     tmp_phase_amp.append(np.concatenate((phase[-8:], amp[-8:]), axis=1))
                 for index in combined_sorted_idx_[:1]:
                     candidates_index = aux_[index]
-                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1]/398*240):int(candidates_index[1]/398*240) + 32]      # (32, 4, (1, 8, 1))
-                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()        # 32, 8
+                    candidates_phase = self.phase_train[candidates_index[0]][int(candidates_index[1] / 398 * 240):int(candidates_index[1] / 398 * 240) + 32]  # (32, 4, (1, 8, 1))
+                    phase = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 0]]).squeeze().squeeze().numpy()  # 32, 8
                     amp = torch.tensor([j.detach().cpu().numpy() for j in candidates_phase[:, 2]]).squeeze().squeeze().numpy()
-                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)        # 32, 16
+                    phase_amp = np.concatenate((phase[:8], amp[:8]), axis=1)  # 32, 16
                     tmp_distance.append(paired_distances([np.concatenate((result_phase[-1][-5:], phase_amp[:3]), axis=0).reshape(-1)], [np.concatenate((result_phase[-1][-3:], phase_amp[:5]), axis=0).reshape(-1)], metric='cosine')[0])
                     tmp_phase_amp.append(np.concatenate((phase[-8:], amp[-8:]), axis=1))
                 final_index = tmp_distance.index(min(tmp_distance))
@@ -661,7 +658,7 @@ class CodeKNN(object):
         if use_phase:
             return np.array(result)[1:1 + num_frames_code], np.array(result_phase)[1:], np.array(vote)
         else:
-            return np.array(result)[1:1+num_frames_code], np.array(result_phase)[1:]
+            return np.array(result)[1:1 + num_frames_code], np.array(result_phase)[1:]
 
     def search_audio_cands(self, clip_input, mode='audio'):
         # mfcc_test:(num_frames=3600, NUM_MFCC_FEAT=13)
@@ -671,12 +668,12 @@ class CodeKNN(object):
         for j in range(self.n_db_seq):
             k = 0
             while k < self.n_db_frm - STEP_SZ * self.step_sz:
-            # for k in range(0, self.n_db_frm-STEP_SZ*self.step_sz, self.step_sz):
+                # for k in range(0, self.n_db_frm-STEP_SZ*self.step_sz, self.step_sz):
                 code = self.code_train[j, int(k / self.step_sz)]
                 if mode == 'wavvq_feat':
                     audio_sim_score = wavvq_distances(clip_input, self.wavvq_train_feat[j, int(k)], mode='combine')
                 elif mode == 'audio':
-                    audio_sim_score = paired_distances([clip_input.reshape(-1)], [self.mfcc_train[j, k:k+self.step_sz].reshape(-1)], metric='cosine')[0]
+                    audio_sim_score = paired_distances([clip_input.reshape(-1)], [self.mfcc_train[j, k:k + self.step_sz].reshape(-1)], metric='cosine')[0]
                 elif mode == 'feat':
                     audio_sim_score = paired_distances([clip_input], [self.feat_train[j, k]], metric='cosine')[0]
                 elif mode == 'wavlm':
@@ -737,7 +734,7 @@ def predict_code_from_audio(train_mfcc, train_code, test_mfcc, data_stats, train
     norm_feat_test = normalize_data(test_feat, data_stats['feat_train_mean'], data_stats['feat_train_std'])
     norm_feat_test = norm_feat_test.transpose((0, 2, 1))
 
-    n_test_seq = frames if frames != 0 else test_wavvq_feat.shape[0]      # test_mfcc.shape[0]
+    n_test_seq = frames if frames != 0 else test_wavvq_feat.shape[0]  # test_mfcc.shape[0]
 
     train_wavlm = train_wavlm.transpose((0, 2, 1))
     test_wavlm = test_wavlm.transpose((0, 2, 1))
@@ -772,7 +769,8 @@ def predict_code_from_audio(train_mfcc, train_code, test_mfcc, data_stats, train
     test_context = test_context.transpose((0, 2, 1))
 
     gesture_knn = CodeKNN(mfcc_train=norm_mfcc_train, code_train=train_code, feat_train=norm_feat_train,
-                          wavlm_train=train_wavlm, wavlm_train_feat=train_wavlm_feat, speech_features=norm_speech_features,
+                          wavlm_train=train_wavlm, wavlm_train_feat=train_wavlm_feat,
+                          speech_features=norm_speech_features,
                           speech_features_feat=norm_speech_features_feat, wavvq_train_feat=train_wavvq_feat,
                           phase_train=train_phase, context_train=train_context,
                           use_wavlm=use_wavlm, use_wavvq=use_wavvq, use_phase=use_phase, use_txt=use_txt)
@@ -817,14 +815,13 @@ def main_codebook(maxFrames=0):
     from data_processing import load_db_codebook
     # (num_seq, NUM_MFCC_FEAT, num_frames=240), (num_seq, num_frames_code=30), (num_seq, NUM_MFCC_FEAT, num_frames=3600)
     train_mfcc, train_code, test_mfcc, train_feat, test_feat, train_wavlm, test_wavlm, train_wavlm_feat, \
-    test_wavlm_feat, speech_features, test_speech_features, train_speech_features_feat, test_speech_features_feat, \
-    train_wavvq_feat, test_wavvq_feat, train_phase, test_phase, train_context, test_context\
-        = load_db_codebook(
-        args.train_database, args.train_codebook, args.test_data, args.train_wavlm, args.test_wavlm, args.train_wavvq, args.test_wavvq)
+        test_wavlm_feat, speech_features, test_speech_features, train_speech_features_feat, test_speech_features_feat, \
+        train_wavvq_feat, test_wavvq_feat, train_phase, test_phase, train_context, test_context \
+        = load_db_codebook(args.train_database, args.train_codebook, args.test_data, args.train_wavlm, args.test_wavlm, args.train_wavvq, args.test_wavvq)
     mfcc_train_mean, mfcc_train_std, _, _ = calc_data_stats(train_mfcc.transpose((0, 2, 1)), test_mfcc.transpose((0, 2, 1)))
     feat_train_mean, feat_train_std, _, _ = calc_data_stats(train_feat.transpose((0, 2, 1)), test_feat.transpose((0, 2, 1)))
     speech_features_train_mean, speech_features_train_std, _, _ = calc_data_stats(speech_features.transpose((0, 2, 1)), test_speech_features.transpose((0, 2, 1)))
-    speech_features_feat_train_mean, speech_features_feat_train_std, _, _ = calc_data_stats(train_speech_features_feat.transpose((0, 2, 1)),test_speech_features_feat.transpose((0, 2, 1)))
+    speech_features_feat_train_mean, speech_features_feat_train_std, _, _ = calc_data_stats(train_speech_features_feat.transpose((0, 2, 1)), test_speech_features_feat.transpose((0, 2, 1)))
     data_stats = {
         'mfcc_train_mean': mfcc_train_mean,
         'mfcc_train_std': mfcc_train_std,
@@ -840,7 +837,7 @@ def main_codebook(maxFrames=0):
                                         train_speech_features_feat, test_speech_features_feat, train_wavvq_feat, test_wavvq_feat,
                                         train_phase, test_phase, train_context, test_context,
                                         use_feature=True, use_wavlm=True, use_freq=False, use_speechfeat=False,
-                                        use_wavvq=False, use_phase=True, use_txt=True, use_aud=True, frames=maxFrames)        # if use wavlm, frames should be 15, and test_data should be 240
+                                        use_wavvq=False, use_phase=True, use_txt=True, use_aud=True, frames=maxFrames)  # if use wavlm, frames should be 15, and test_data should be 240
     print(pred_seqs.shape)
     np.savez_compressed(args.out_knn_filename, knn_pred=pred_seqs)
 
