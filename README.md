@@ -19,7 +19,14 @@ This code was tested on `NVIDIA GeForce RTX 2080 Ti` and requires `conda or mini
 conda create -n QPGesture python=3.7
 conda activate QPGesture
 pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-pip install -r requirements.txt 
+
+
+
+pip install fasttext-wheel 
+pip install fasttext
+
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
 ```
 
 ## 2. Quick Start
