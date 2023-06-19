@@ -105,7 +105,7 @@ PARENT = [1, 11, 1, 2, 3, 1, 5, 6, 10, 10, -1, 10, 1, 13, 13, 14, 15,
         13, 17, 18, 13, 20, 21, 13, 23, 24, 13, 26, 27, 16, 19, 22, 25, 
         28, 34, 34, 35, 36, 34, 38, 39, 34, 41, 42, 34, 44, 45, 34, 47, 
         48, 37, 40, 43, 46, 49])
-		
+
 Please note that right_wrist and right_hand_root represent the same location
 in the 3D space. This is also the case for left_wrist and left_hand_root.
 
