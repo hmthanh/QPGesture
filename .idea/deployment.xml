@@ -5,14 +5,7 @@
       <paths name="yangsc21">
         <serverdata>
           <mappings>
-            <mapping deploy="/ceph/hdd/yangsc21/Python/QPG/" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="yangsc21@server13.mjrc.ml:22">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/ceph/hdd/yangsc21/Python/QPG" local="$PROJECT_DIR$" web="/" />
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
