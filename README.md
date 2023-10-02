@@ -42,7 +42,7 @@ You will get the results in `./codebook/Speech2GestureMatching/output/result.npz
 
 ```angular2html
 cd ..
-python VisualizeCodebook.py --config=./configs/codebook.yml --no_cuda 0 --gpu 0 --code_path "./Speech2GestureMatching/output/result.npz" --VQVAE_model_path "../pretrained_model/codebook_checkpoint_best.bin" --stage inference
+python VisualizeCodebook.py --config=./configs/codebook.yml --gpu 0 --code_path "./Speech2GestureMatching/output/result.npz" --VQVAE_model_path "../pretrained_model/codebook_checkpoint_best.bin" --stage inference
 ```
 
 Then you will get `.bvh`, `.mp4` and other intermediate files in `.codebook/Speech2GestureMatching/output/knn_pred_wavvq/`
@@ -53,11 +53,11 @@ You can use [Blender](https://www.blender.org/) to visualize bvh file.
 
 https://github.com/YoungSeng/QPGesture/assets/37477030/d554f634-04e6-4f7e-8cb8-5f382af282a1
 
-We also provide a processed database for speaker id `1`, available for download in [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/f/c9401c6c0142480f826a/) and [Baidu Cloud](https://pan.baidu.com/s/1g3tN7c9KDfbhiJ-ET2jfmQ?pwd=q9ub). It is optional to use this database.
+We also provide a processed database for speaker id `1`, available for download in [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/f/c9401c6c0142480f826a/) and [Baidu Cloud](https://pan.baidu.com/s/1g3tN7c9KDfbhiJ-ET2jfmQ?pwd=q9ub). It is optional to use this database. We recommend trying Speaker `1`, which has a larger database and better performance.
 
 ## 3. Test your own audio
 
-Here, we need to build the test set. We use `./data/Example3/4.wav` as an example.
+Here, we need to build the test set. We use `./data/Example3/4.wav` as an example. Note that no text is used here.
 
 Download `vq-wav2vec Gumbel` from [fairseq](https://github.com/facebookresearch/fairseq/blob/main/examples/wav2vec/README.md#vq-wav2vec)
 and put it in `./process/`.
@@ -93,20 +93,22 @@ Download the [WavLM Large](https://github.com/microsoft/unilm/tree/master/wavlm)
 Download the character you want to build from [BEAT](https://pantomatrix.github.io/BEAT/), you can put it in `./dataset/orig_BEAT/` or other places.
 Here is an example of speaker id `10`:
 ```angular2html
+python make_beat_dataset.py --BEAT_path "../dataset/orig_BEAT/speakers/" --save_dir "../dataset/BEAT" --prefix "speaker_10_state_0" --step 1
 cd ../codebook/Speech2GestureMatching/
 python normalize_audio.py
 python mfcc.py
 cd ../../process/
-python make_beat_dataset.py --BEAT_path "../dataset/orig_BEAT/speakers/" --save_dir "../dataset/BEAT" --prefix "speaker_10_state_0"
+python make_beat_dataset.py --BEAT_path "../dataset/orig_BEAT/speakers/" --save_dir "../dataset/BEAT" --prefix "speaker_10_state_0" --step 2
 ```
 
 Now we get a basic database and further we compute phase, wavlm and wavvq features:
 
 ```
 cd ../codebook/
-python PAE.py --config=./configs/codebook.yml --no_cuda 0 --gpu 0 --stage inference
+python PAE.py --config=./configs/codebook.yml --gpu 0 --stage inference
 cd ../process/
-python make_beat_dataset.py --config "../codebook/configs/codebook.yml" --BEAT_path "../dataset/orig_BEAT/speakers/" --save_dir "../dataset/BEAT" --prefix "speaker_10_state_0" --gpu 0 --step 2
+python make_beat_dataset.py --config "../codebook/configs/codebook.yml" --BEAT_path "../dataset/orig_BEAT/speakers/" --save_dir "../dataset/BEAT" --prefix "speaker_10_state_0" --gpu 0 --step 3
+python make_beat_dataset.py --config "../codebook/configs/codebook.yml" --BEAT_path "../dataset/orig_BEAT/speakers/" --save_dir "../dataset/BEAT" --prefix "speaker_10_state_0" --gpu 0 --step 4
 ```
 Then you will get all the databases in `Quick Start`.
 
@@ -118,7 +120,7 @@ This is just an example of speaker id `10`, in fact we use all speakers to train
 
 ```angular2html
 pip install numpy==1.19.5       # Unfortunately, we have been troubled with the version of the numpy library (with pyarrow).
-python beat_data_to_lmdb.py --config=../codebook/configs/codebook.yml --no_cuda 0 --gpu 0
+python beat_data_to_lmdb.py --config=../codebook/configs/codebook.yml --gpu 0
 ```
 Then you will get `data mean/std`, and you may copy them to `./codebook/configs/codebook.yml`.
 
@@ -126,14 +128,14 @@ Then you will get `data mean/std`, and you may copy them to `./codebook/configs/
 
 ```angular2html
 cd ../codebook/
-python train.py --config=./configs/codebook.yml --no_cuda 0 --gpu 0
+python train.py --config=./configs/codebook.yml --gpu 0
 ```
 The gesture VQ-VAE will saved in `./codebook/output/train_codebook/codebook_checkpoint_best.bin`.
 
 For futher calculate the distance between each code, run
 
 ```angular2html
-python VisualizeCodebook.py --config=./configs/codebook.yml --no_cuda 0 --gpu 0 --code_path "./Speech2GestureMatching/output/result.npz" --VQVAE_model_path "./output/train_codebook/codebook_checkpoint_best.bin" --stage train
+python VisualizeCodebook.py --config=./configs/codebook.yml --gpu 0 --code_path "./Speech2GestureMatching/output/result.npz" --VQVAE_model_path "./output/train_codebook/codebook_checkpoint_best.bin" --stage train
 ```
 
 Then you will get the absolute pose of each code in `./codebook/output/code.npz` used in `Quick Start`.
@@ -141,7 +143,7 @@ Then you will get the absolute pose of each code in `./codebook/output/code.npz`
 ### PAE
 
 ```angular2html
-python PAE.py --config=./configs/codebook.yml --no_cuda 0 --gpu 0 --stage train
+python PAE.py --config=./configs/codebook.yml --gpu 0 --stage train
 ```
 
 The PAE will saved in `./codebook/output/train_PAE/PAE_checkpoint_best.bin`
@@ -160,7 +162,9 @@ If you find this work useful, please consider cite our work with the following b
   title        = {QPGesture: Quantization-Based and Phase-Guided Motion Matching for Natural Speech-Driven Gesture Generation},
   booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition, {CVPR}},
   publisher    = {{IEEE}},
+  month        = {June},
   year         = {2023},
+  pages        = {2321-2330}
 }
 ```
 
